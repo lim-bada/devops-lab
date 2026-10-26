@@ -1,0 +1,24 @@
+# 3장 Jenkins 실습 환경
+#   docker compose up -d --build
+#   docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+#   브라우저: http://localhost:8080
+#
+# 원본 슬라이드의 version: "3.8" 줄은 뺐다. Compose v2 는 이 줄을 무시하고 경고만 낸다.
+services:
+  jenkins:
+    build: .                              # Dockerfile: 공식 이미지 + docker CLI
+    image: devops-lab/jenkins:lts-jdk21
+    container_name: jenkins
+    restart: unless-stopped
+    user: root                            # docker.sock 에 쓰려면 권한이 필요하다(실습용)
+    ports:
+      - "8080:8080"                       # 웹 UI
+      - "50000:50000"                     # agent 가 controller 에 붙는 포트
+    environment:
+      - TZ=Asia/Seoul
+    volumes:
+      - jenkins_home:/var/jenkins_home    # 설정·job·빌드 기록. 지우면 처음부터 다시
+      - /var/run/docker.sock:/var/run/docker.sock   # 호스트 Docker 를 그대로 빌려 쓴다
+
+volumes:
+  jenkins_home:
