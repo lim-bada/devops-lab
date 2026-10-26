@@ -1,0 +1,41 @@
+# 4장: app image 를 build 해서 광주 Harbor 에 push 한다.
+# .github/workflows/docker.yml 로 복사하고 3 g094 를 반 번호와 개인 ID 로 바꾼다.
+# 필요한 Secret 두 개: HARBOR_USERNAME(skala-gj3), HARBOR_PASSWORD(반 Harbor 비밀번호)
+name: app-image
+
+on:
+  push:
+    branches: [main]
+    paths: ["app/**", ".github/workflows/docker.yml"]   # 이 파일을 처음 올릴 때도 실행된다
+  workflow_dispatch:
+
+permissions:
+  contents: read           # Harbor 는 반 계정으로 로그인하므로 쓰기 권한이 필요 없다
+
+env:
+  REGISTRY: harbor.skala-gj.com                                   # https:// 를 붙이지 않는다
+  IMAGE: harbor.skala-gj.com/skala-gj3/g094-devops-lab-app      # 반 프로젝트 / 개인 ID
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Short sha
+        id: vars
+        run: echo "tag=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.HARBOR_USERNAME }}
+          password: ${{ secrets.HARBOR_PASSWORD }}
+      - uses: docker/build-push-action@v7
+        with:
+          context: app
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ steps.vars.outputs.tag }}
+            ${{ env.IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
